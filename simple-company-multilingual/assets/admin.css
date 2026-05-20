@@ -1,0 +1,411 @@
+/* Simple Company Multilingual admin styles */
+.scm-settings-wrap {
+  width: calc(100% - 20px);
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+.scm-settings-wrap * {
+  box-sizing: border-box;
+}
+.scm-settings-section {
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 18px 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+.scm-tabs {
+  margin-top: 16px;
+  border-bottom: 1px solid #c3c4c7;
+}
+.scm-tab-panel {
+  display: none;
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-top: 0;
+  padding: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+.scm-tab-panel.is-active {
+  display: block;
+}
+.scm-tab-panel .scm-settings-section {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+.scm-tab-save {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #dcdcde;
+}
+.scm-settings-section h2 {
+  margin: 0 0 12px;
+}
+.scm-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+}
+.scm-settings-grid .form-table {
+  margin-top: 0;
+}
+.scm-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+.scm-language-table {
+  table-layout: fixed;
+  margin-top: 10px;
+  width: 100%;
+  min-width: 980px;
+}
+.scm-language-table th {
+  font-weight: 600;
+}
+.scm-language-table td,
+.scm-language-table th {
+  vertical-align: middle;
+  padding: 10px 8px;
+}
+.scm-col-active {
+  width: 74px;
+  text-align: center;
+}
+.scm-col-language {
+  width: 220px;
+}
+.scm-col-locale {
+  width: 120px;
+}
+.scm-col-prefix {
+  width: 140px;
+}
+.scm-col-flag {
+  width: 90px;
+}
+.scm-col-image {
+  width: 360px;
+}
+.scm-col-actions {
+  width: 130px;
+}
+.scm-language-table input[type='text'],
+.scm-language-table input[type='url'] {
+  width: 100%;
+  max-width: 100%;
+}
+.scm-language-table .small-text {
+  width: 62px;
+}
+.scm-add-row td {
+  background: #f6f7f7;
+}
+.scm-language-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.scm-language-name code {
+  white-space: nowrap;
+}
+.scm-language-default-badge {
+  display: inline-flex;
+  background: #eef4ff;
+  color: #1d4ed8;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.scm-flag-image-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.scm-flag-image-preview {
+  width: 24px;
+  height: 24px;
+  max-width: 24px;
+  max-height: 24px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+.scm-flag-image-url {
+  min-width: 0;
+  width: 100%;
+}
+.scm-add-language-box {
+  border: 1px solid #dcdcde;
+  background: #f6f7f7;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 12px 0 16px;
+}
+.scm-add-language-box h3 {
+  margin: 0 0 10px;
+}
+.scm-add-language-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 90px auto;
+  gap: 10px;
+  align-items: end;
+}
+.scm-add-language-row p {
+  margin: 0;
+}
+.scm-add-language-row label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.scm-add-language-row input[type='text'] {
+  width: 100%;
+}
+.scm-add-language-action {
+  white-space: nowrap;
+}
+.scm-language-help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin: 8px 0;
+  color: #50575e;
+}
+.scm-language-help span:before {
+  content: '• ';
+}
+.scm-button-delete {
+  color: #b32d2e !important;
+  border-color: #b32d2e !important;
+  background: #fff !important;
+}
+.scm-button-delete:hover,
+.scm-button-delete:focus {
+  color: #8a2424 !important;
+  border-color: #8a2424 !important;
+  background: #fff5f5 !important;
+}
+.scm-widget-visibility {
+  border-top: 1px solid #dcdcde;
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.scm-widget-visibility p {
+  margin: 6px 0;
+}
+
+/* Admin list translation row highlighting */
+tr.scm-translation-row--child.scm-is-collapsed {
+  display: none !important;
+}
+
+.scm-toggle-children {
+  margin-top: 4px !important;
+}
+
+tr.scm-translation-row--root > th,
+tr.scm-translation-row--root > td {
+  background-color: #eef7ff !important;
+}
+
+tr.scm-translation-row--child > th,
+tr.scm-translation-row--child > td {
+  background-color: #fff8df !important;
+}
+
+tr.scm-translation-row--root:hover > th,
+tr.scm-translation-row--root:hover > td {
+  background-color: #dbeeff !important;
+}
+
+tr.scm-translation-row--child:hover > th,
+tr.scm-translation-row--child:hover > td {
+  background-color: #ffe9a8 !important;
+}
+
+tr.scm-translation-row--root > th.check-column {
+  box-shadow: inset 4px 0 0 #2271b1 !important;
+}
+
+tr.scm-translation-row--child > th.check-column {
+  box-shadow: inset 4px 0 0 #dba617 !important;
+}
+
+.scm-language-table textarea {
+  width: 100%;
+  min-width: 180px;
+}
+
+@media (max-width: 1100px) {
+  .scm-settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .scm-language-table {
+    table-layout: fixed;
+    min-width: 920px;
+  }
+  .scm-col-image {
+    width: 260px;
+  }
+  .scm-add-language-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .scm-add-language-action {
+    align-self: end;
+  }
+}
+@media (max-width: 782px) {
+  .scm-tab-panel {
+    padding: 12px;
+  }
+  .scm-settings-section {
+    padding: 12px;
+  }
+  .scm-add-language-row {
+    grid-template-columns: 1fr;
+  }
+  .scm-language-table {
+    min-width: 860px;
+  }
+  .scm-tabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .scm-tabs .nav-tab {
+    white-space: nowrap;
+  }
+}
+
+/* Final settings table spacing polish */
+.scm-language-table {
+  border-collapse: collapse;
+}
+
+.scm-language-table td,
+.scm-language-table th {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.scm-language-table input[type='text'],
+.scm-language-table input[type='url'],
+.scm-language-table select,
+.scm-language-table textarea {
+  display: block;
+  width: calc(100% - 8px);
+  max-width: calc(100% - 8px);
+  margin-left: 4px;
+  margin-right: 4px;
+  box-sizing: border-box;
+}
+
+.scm-language-table textarea {
+  min-height: 46px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.scm-language-table td:last-child,
+.scm-language-table th:last-child {
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.scm-table-scroll {
+  padding-bottom: 10px;
+}
+
+.scm-add-language-row input[type='text'],
+.scm-add-language-row select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Theme Element Overrides table spacing */
+#scm-tab-theme-elements .scm-language-table {
+  table-layout: auto;
+  min-width: 1180px;
+}
+
+#scm-tab-theme-elements .scm-language-table th,
+#scm-tab-theme-elements .scm-language-table td {
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+#scm-tab-theme-elements .scm-language-table input[type='text'],
+#scm-tab-theme-elements .scm-language-table select,
+#scm-tab-theme-elements .scm-language-table textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#scm-tab-theme-elements .scm-language-table textarea {
+  min-width: 150px;
+  min-height: 48px;
+  resize: vertical;
+}
+
+#scm-tab-theme-elements .scm-language-table td:nth-child(1) {
+  width: 120px;
+}
+
+#scm-tab-theme-elements .scm-language-table td:nth-child(2) {
+  width: 220px;
+}
+
+#scm-tab-theme-elements .scm-language-table td:nth-child(3) {
+  width: 120px;
+}
+
+#scm-tab-theme-elements .scm-language-table td:last-child {
+  width: 120px;
+  white-space: nowrap;
+}
+
+#scm-tab-theme-elements .scm-button-delete {
+  margin-top: 0;
+}
+
+#scm-tab-theme-elements .scm-add-language-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(320px, 2fr) 120px auto;
+  gap: 12px;
+  align-items: end;
+}
+
+#scm-tab-theme-elements .scm-add-language-row p {
+  margin: 0;
+}
+
+#scm-tab-theme-elements .scm-add-language-row input,
+#scm-tab-theme-elements .scm-add-language-row select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 783px) {
+  .scm-language-table {
+    min-width: 1120px;
+  }
+}
