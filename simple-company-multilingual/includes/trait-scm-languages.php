@@ -16,9 +16,24 @@ trait SCM_Languages {
 		 * @return string
 		 */
 		private function get_wordpress_default_language() {
-			$locale = get_locale();
+			/*
+			 * Use the stored WordPress Site Language option instead of get_locale().
+			 * get_locale()/determine_locale can be filtered by this plugin on the
+			 * frontend. When the plugin default is set to "Use WordPress Site
+			 * Language" and the current request is /vi/, get_locale() may return
+			 * vi and accidentally make Vietnamese the default language for that
+			 * request. That breaks homepage routing because /vi/ is then treated as
+			 * the default language instead of a prefixed translation.
+			 */
+			$locale = get_option( 'WPLANG', '' );
 
-			return $locale ? sanitize_key( $locale ) : 'en_US';
+			if ( '' === $locale ) {
+				$locale = 'en_US';
+			}
+
+			$locale = sanitize_key( $locale );
+
+			return '' !== $locale ? $locale : 'en_us';
 		}
 
 /**
@@ -126,6 +141,52 @@ trait SCM_Languages {
 		}
 
 /**
+		 * Get normalized language display order.
+		 *
+		 * @param array $config Language config.
+		 * @param int   $fallback Fallback order.
+		 * @return int
+		 */
+		private function get_language_order_value( $config, $fallback = 999 ) {
+			if ( is_array( $config ) && isset( $config['order'] ) && '' !== $config['order'] ) {
+				return max( 0, absint( $config['order'] ) );
+			}
+
+			return max( 0, absint( $fallback ) );
+		}
+
+/**
+		 * Sort languages by configured order, then label.
+		 *
+		 * @param array $languages Languages.
+		 * @return array
+		 */
+		private function sort_languages_by_order( $languages ) {
+			if ( ! is_array( $languages ) ) {
+				return array();
+			}
+
+			uasort(
+				$languages,
+				static function ( $a, $b ) {
+					$order_a = isset( $a['order'] ) ? absint( $a['order'] ) : 999;
+					$order_b = isset( $b['order'] ) ? absint( $b['order'] ) : 999;
+
+					if ( $order_a === $order_b ) {
+						$label_a = isset( $a['label'] ) ? (string) $a['label'] : '';
+						$label_b = isset( $b['label'] ) ? (string) $b['label'] : '';
+
+						return strcasecmp( $label_a, $label_b );
+					}
+
+					return $order_a <=> $order_b;
+				}
+			);
+
+			return $languages;
+		}
+
+/**
 		 * Get active languages.
 		 *
 		 * @return array
@@ -143,6 +204,7 @@ trait SCM_Languages {
 				'flag'       => isset( $default_config['flag'] ) ? sanitize_text_field( $default_config['flag'] ) : '',
 				'flag_image' => isset( $default_config['flag_image'] ) ? esc_url_raw( $default_config['flag_image'] ) : '',
 				'wp_locale'  => isset( $default_config['wp_locale'] ) && '' !== $default_config['wp_locale'] ? $this->sanitize_wp_locale( $default_config['wp_locale'] ) : $this->guess_wp_locale_from_language( $default ),
+				'order'      => $this->get_language_order_value( $default_config, 0 ),
 			);
 
 			if ( isset( $settings['languages'] ) && is_array( $settings['languages'] ) ) {
@@ -176,11 +238,12 @@ trait SCM_Languages {
 						'flag'       => isset( $config['flag'] ) ? sanitize_text_field( $config['flag'] ) : '',
 						'flag_image' => isset( $config['flag_image'] ) ? esc_url_raw( $config['flag_image'] ) : '',
 						'wp_locale'  => isset( $config['wp_locale'] ) && '' !== $config['wp_locale'] ? $this->sanitize_wp_locale( $config['wp_locale'] ) : $this->guess_wp_locale_from_language( $locale ),
+						'order'      => $this->get_language_order_value( $config, 999 ),
 					);
 				}
 			}
 
-			return $active;
+			return $this->sort_languages_by_order( $active );
 		}
 
 /**

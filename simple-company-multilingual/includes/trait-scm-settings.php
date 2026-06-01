@@ -268,6 +268,16 @@ trait SCM_Settings {
 				$new_label  = isset( $input['new_language']['label'] ) ? sanitize_text_field( wp_unslash( $input['new_language']['label'] ) ) : '';
 				$new_prefix = isset( $input['new_language']['prefix'] ) ? sanitize_title( wp_unslash( $input['new_language']['prefix'] ) ) : '';
 				$new_flag   = isset( $input['new_language']['flag'] ) ? sanitize_text_field( wp_unslash( $input['new_language']['flag'] ) ) : '';
+				$next_language_order = 10;
+
+				if ( isset( $input['languages'] ) && is_array( $input['languages'] ) ) {
+					foreach ( $input['languages'] as $existing_language ) {
+						if ( is_array( $existing_language ) && isset( $existing_language['order'] ) ) {
+							$next_language_order = max( $next_language_order, absint( wp_unslash( $existing_language['order'] ) ) + 10 );
+						}
+					}
+				}
+
 
 				if ( '' !== $new_locale ) {
 					if ( isset( $settings['languages'][ $new_locale ] ) || isset( $settings['custom_languages'][ $new_locale ] ) || $new_locale === $this->get_default_language() ) {
@@ -309,6 +319,7 @@ trait SCM_Settings {
 						'flag'       => $new_flag,
 						'flag_image' => '',
 						'wp_locale'  => $new_wp_locale,
+						'order'      => $next_language_order,
 					);
 
 					if ( '' !== $new_wp_locale ) {
@@ -335,6 +346,7 @@ trait SCM_Settings {
 					$flag   = isset( $config['flag'] ) ? sanitize_text_field( wp_unslash( $config['flag'] ) ) : '';
 					$image  = isset( $config['flag_image'] ) ? esc_url_raw( wp_unslash( $config['flag_image'] ) ) : '';
 					$wp_locale = isset( $config['wp_locale'] ) ? $this->sanitize_wp_locale( wp_unslash( $config['wp_locale'] ) ) : '';
+					$order     = isset( $config['order'] ) ? max( 0, absint( wp_unslash( $config['order'] ) ) ) : 999;
 
 					if ( '' === $prefix ) {
 						if ( isset( $catalog[ $locale ]['prefix'] ) && '' !== $catalog[ $locale ]['prefix'] ) {
@@ -351,6 +363,7 @@ trait SCM_Settings {
 						'flag'       => $flag,
 						'flag_image' => $image,
 						'wp_locale'  => $this->resolve_wordpress_locale_for_language( $locale, $wp_locale ),
+						'order'      => $order,
 					);
 
 
@@ -572,17 +585,14 @@ public function enqueue_admin_assets( $hook_suffix ) {
 
 			$ordered_catalog = array();
 
-			if ( isset( $catalog[ $plugin_default ] ) ) {
-				$ordered_catalog[ $plugin_default ] = $catalog[ $plugin_default ];
-			}
-
 			foreach ( $catalog as $locale => $language ) {
-				if ( $locale === $plugin_default ) {
-					continue;
-				}
+				$config = isset( $settings['languages'][ $locale ] ) && is_array( $settings['languages'][ $locale ] ) ? $settings['languages'][ $locale ] : array();
 
+				$language['order'] = $this->get_language_order_value( $config, $locale === $plugin_default ? 0 : 999 );
 				$ordered_catalog[ $locale ] = $language;
 			}
+
+			$ordered_catalog = $this->sort_languages_by_order( $ordered_catalog );
 			?>
 			<div class="wrap scm-settings-wrap">
 				<h1><?php esc_html_e( 'Simple Company Multilingual', 'simple-company-multilingual' ); ?></h1>
@@ -724,6 +734,7 @@ public function enqueue_admin_assets( $hook_suffix ) {
 									<th class="scm-col-prefix"><?php esc_html_e( 'Prefix', 'simple-company-multilingual' ); ?></th>
 									<th class="scm-col-flag"><?php esc_html_e( 'Flag', 'simple-company-multilingual' ); ?></th>
 									<th class="scm-col-image"><?php esc_html_e( 'Image / SVG', 'simple-company-multilingual' ); ?></th>
+									<th class="scm-col-order"><?php esc_html_e( 'Order', 'simple-company-multilingual' ); ?></th>
 									<th class="scm-col-actions"><?php esc_html_e( 'Actions', 'simple-company-multilingual' ); ?></th>
 								</tr>
 							</thead>
@@ -737,6 +748,7 @@ public function enqueue_admin_assets( $hook_suffix ) {
 									$prefix     = isset( $config['prefix'] ) ? $config['prefix'] : $language['prefix'];
 									$flag       = isset( $config['flag'] ) ? $config['flag'] : '';
 									$image      = isset( $config['flag_image'] ) ? $config['flag_image'] : '';
+									$order      = $this->get_language_order_value( $config, $is_default ? 0 : 999 );
 									?>
 									<tr>
 										<td class="scm-col-active">
@@ -786,6 +798,10 @@ public function enqueue_admin_assets( $hook_suffix ) {
 												<input type="url" class="scm-flag-image-url" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[languages][<?php echo esc_attr( $locale ); ?>][flag_image]" value="<?php echo esc_url( $image ); ?>" placeholder="https://example.com/flag.svg" />
 												<button type="button" class="button scm-flag-upload"><?php esc_html_e( 'Upload', 'simple-company-multilingual' ); ?></button>
 											</div>
+										</td>
+
+										<td class="scm-col-order">
+											<input type="number" class="small-text" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[languages][<?php echo esc_attr( $locale ); ?>][order]" value="<?php echo esc_attr( $order ); ?>" min="0" step="1" />
 										</td>
 
 										<td>

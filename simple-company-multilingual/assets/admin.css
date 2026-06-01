@@ -409,3 +409,13 @@ tr.scm-translation-row--child > th.check-column {
     min-width: 1120px;
   }
 }
+
+/* Language order field */
+.scm-language-table .scm-col-order {
+  width: 90px;
+  text-align: center;
+}
+
+.scm-language-table .scm-col-order input[type='number'] {
+  width: 72px;
+}

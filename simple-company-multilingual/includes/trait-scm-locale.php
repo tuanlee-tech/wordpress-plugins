@@ -118,7 +118,11 @@ trait SCM_Locale {
 			$default  = isset( $settings['default_language'] ) && '' !== $settings['default_language'] ? sanitize_key( $settings['default_language'] ) : sanitize_key( $fallback_locale );
 
 			if ( '' === $default ) {
-				$default = 'en_US';
+				$default = $this->get_wordpress_default_language();
+			}
+
+			if ( '' === $default ) {
+				$default = 'en_us';
 			}
 
 			$path = isset( $_SERVER['REQUEST_URI'] ) ? wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized

@@ -16,6 +16,7 @@ trait SCM_Frontend {
 		 * @param array $atts Attributes.
 		 * @return string
 		 */
+		private $has_language_switcher = false;
 		public function render_language_switcher_shortcode( $atts ) {
 			$atts = shortcode_atts(
 				array(
@@ -26,7 +27,7 @@ trait SCM_Frontend {
 				$atts,
 				'scm_language_switcher'
 			);
-
+			$this->has_language_switcher = true;
 			return $this->get_language_switcher_html(
 				absint( $atts['post_id'] ),
 				array(
@@ -128,10 +129,13 @@ trait SCM_Frontend {
 				)
 			);
 
-			$active  = $this->get_active_languages();
-			$current = $this->get_post_language( $post_id );
-			$group   = $this->get_translation_group( $post_id );
-			$links   = array();
+			$layout             = sanitize_key( $args['layout'] );
+			$active             = $this->get_active_languages();
+			$current            = $this->get_post_language( $post_id );
+			$group              = $this->get_translation_group( $post_id );
+			$links              = array();
+			$items              = array();
+			$current_label_html = '';
 
 			foreach ( $active as $locale => $language ) {
 				$is_current = $locale === $current;
@@ -142,9 +146,15 @@ trait SCM_Frontend {
 
 				$target_id  = isset( $group[ $locale ] ) ? absint( $group[ $locale ] ) : 0;
 				$label_html = $this->get_language_label_html( $locale, $language );
+				$lang_attr  = str_replace( '_', '-', $locale );
+
+				if ( $is_current ) {
+					$current_label_html = $label_html;
+				}
 
 				if ( $target_id <= 0 ) {
 					$links[] = sprintf( '<span class="scm-language-switcher__link scm-language-switcher__link--disabled" aria-disabled="true">%s</span>', $label_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					$items[] = sprintf( '<span class="scm-language-switcher__item scm-language-switcher__item--disabled" aria-disabled="true">%s</span>', $label_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					continue;
 				}
 
@@ -167,20 +177,32 @@ trait SCM_Frontend {
 
 				if ( ! is_string( $url ) || '' === $url ) {
 					$links[] = sprintf( '<span class="scm-language-switcher__link scm-language-switcher__link--disabled" aria-disabled="true">%s</span>', $label_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					$items[] = sprintf( '<span class="scm-language-switcher__item scm-language-switcher__item--disabled" aria-disabled="true">%s</span>', $label_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					continue;
 				}
 
-				$classes = array( 'scm-language-switcher__link' );
+				$classes      = array( 'scm-language-switcher__link' );
+				$item_classes = array( 'scm-language-switcher__item' );
 
 				if ( $is_current ) {
-					$classes[] = 'is-current';
+					$classes[]      = 'is-current';
+					$item_classes[] = 'is-current';
 				}
 
 				$links[] = sprintf(
 					'<a href="%1$s" class="%2$s" hreflang="%3$s" lang="%3$s" aria-current="%4$s">%5$s</a>',
 					esc_url( $url ),
 					esc_attr( implode( ' ', $classes ) ),
-					esc_attr( str_replace( '_', '-', $locale ) ),
+					esc_attr( $lang_attr ),
+					$is_current ? 'page' : 'false',
+					$label_html . $draft_note // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				);
+
+				$items[] = sprintf(
+					'<a href="%1$s" class="%2$s" hreflang="%3$s" lang="%3$s" aria-current="%4$s" role="menuitem">%5$s</a>',
+					esc_url( $url ),
+					esc_attr( implode( ' ', $item_classes ) ),
+					esc_attr( $lang_attr ),
 					$is_current ? 'page' : 'false',
 					$label_html . $draft_note // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				);
@@ -190,25 +212,41 @@ trait SCM_Frontend {
 				return '';
 			}
 
+			if ( '' === $current_label_html ) {
+				$current_label_html = wp_strip_all_tags( reset( $links ) );
+			}
+
+			if ( true ) {
+				$dropdown_id = 'scm-language-dropdown-' . wp_rand( 1000, 999999 );
+
+				return sprintf(
+					'<nav class="scm-language-switcher scm-language-switcher--dropdown scm-language-switcher--%1$s" aria-label="%2$s" data-scm-language-switcher="dropdown"><button type="button" class="scm-language-switcher__trigger" aria-expanded="false" aria-controls="%3$s"><span class="scm-language-switcher__current">%4$s</span><svg class="scm-language-switcher__arrow" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="scm-language-switcher__dropdown" id="%3$s" role="menu">%5$s</div></nav>',
+					esc_attr( sanitize_html_class( $layout ) ),
+					esc_attr__( 'Language switcher', 'simple-company-multilingual' ),
+					esc_attr( $dropdown_id ),
+					$current_label_html, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					implode( "\n", $items ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				);
+			}
+
 			return sprintf(
 				'<nav class="scm-language-switcher scm-language-switcher--%1$s" aria-label="%2$s">%3$s</nav>',
-				esc_attr( sanitize_html_class( $args['layout'] ) ),
+				esc_attr( sanitize_html_class( $layout ) ),
 				esc_attr__( 'Language switcher', 'simple-company-multilingual' ),
-				implode( "
-", $links )
+				implode( "\n", $links )
 			);
 		}
 
-/**
-		 * Get the source page/post ID for the language switcher.
-		 *
-		 * Special pages such as WooCommerce Shop/Cart/Checkout/My Account and the
-		 * WordPress Posts Page are not always exposed as the queried object. In that
-		 * case the switcher must use the original special page ID so it can read the
-		 * correct translation group.
-		 *
-		 * @return int
-		 */
+	/**
+			 * Get the source page/post ID for the language switcher.
+			 *
+			 * Special pages such as WooCommerce Shop/Cart/Checkout/My Account and the
+			 * WordPress Posts Page are not always exposed as the queried object. In that
+			 * case the switcher must use the original special page ID so it can read the
+			 * correct translation group.
+			 *
+			 * @return int
+			 */
 		private function get_language_switcher_source_id() {
 			$special_page_id = 0;
 
@@ -301,6 +339,13 @@ trait SCM_Frontend {
 				array(),
 				SCM_PLUGIN_VERSION
 			);
+			wp_enqueue_script(
+				'scm-frontend-lang-switcher',
+				SCM_PLUGIN_URL . 'assets/scm-lang.js',
+				array(),
+				SCM_PLUGIN_VERSION,
+				true // load in footer
+			);
 		}
 
 /**
@@ -320,8 +365,17 @@ trait SCM_Frontend {
 				return;
 			}
 
-			if ( $query->is_main_query() && $query->is_singular() ) {
-				return;
+			if ( $query->is_main_query() ) {
+				/*
+				 * Do not add archive/list language filters to explicit singular
+				 * requests. At pre_get_posts time is_singular() is not always reliable
+				 * yet, especially after the SCM request router rewrites /vi/ to a
+				 * translated page_id. Adding a meta_query here can hide the page and
+				 * incorrectly produce "Nothing Found".
+				 */
+				if ( $query->is_singular() || $query->get( 'page_id' ) || $query->get( 'p' ) || $query->get( 'pagename' ) || $query->get( 'name' ) ) {
+					return;
+				}
 			}
 
 			$post_type = $query->get( 'post_type' );

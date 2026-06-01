@@ -1,14 +1,241 @@
 /* Simple Company Multilingual frontend styles */
-.scm-language-switcher{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0;}
-.scm-language-switcher__link{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border:1px solid currentColor;border-radius:999px;text-decoration:none;font-size:14px;line-height:1.2;background:#fff;}
-.scm-language-switcher__link.is-current{font-weight:700;text-decoration:underline;}
-.scm-language-switcher__link--disabled{opacity:.45;cursor:not-allowed;pointer-events:none;}
-.scm-language-flag-image{width:1.25em;height:1.25em;max-width:24px;max-height:24px;object-fit:contain;flex:0 0 auto;}
-.scm-language-flag-text{line-height:1;}
-.scm-language-status{font-size:11px;opacity:.72;margin-left:2px;}
-.scm-floating-language-switcher{position:fixed;z-index:9999;background:#fff;padding:8px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.16);}
-.scm-floating-language-switcher .scm-language-switcher{margin:0;}
-.scm-floating-language-switcher--bottom-right{right:16px;bottom:16px;}
-.scm-floating-language-switcher--bottom-left{left:16px;bottom:16px;}
-.scm-floating-language-switcher--top-right{right:16px;top:16px;}
-.scm-floating-language-switcher--top-left{left:16px;top:16px;}
+.scm-language-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+
+.scm-language-switcher__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  text-decoration: none !important;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.scm-language-switcher__link.is-current {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.scm-language-switcher__link--disabled,
+.scm-language-switcher__item--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.scm-language-flag-image {
+  width: 1.25em;
+  height: 1.25em;
+  max-width: 24px;
+  max-height: 24px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.scm-language-flag-text {
+  line-height: 1;
+}
+
+.scm-language-status {
+  font-size: 11px;
+  opacity: 0.72;
+  margin-left: 2px;
+}
+
+/* Floating container */
+.scm-floating-language-switcher {
+  position: fixed;
+  z-index: 9999;
+}
+
+.scm-floating-language-switcher--bottom-right {
+  right: 16px;
+  bottom: 16px;
+}
+
+.scm-floating-language-switcher--bottom-left {
+  left: 16px;
+  bottom: 16px;
+}
+
+.scm-floating-language-switcher--top-right {
+  right: 16px;
+  top: 16px;
+}
+
+.scm-floating-language-switcher--top-left {
+  left: 16px;
+  top: 16px;
+}
+
+/* Dropdown layout */
+.scm-language-switcher--dropdown {
+  position: relative;
+  display: inline-block;
+  font-family: inherit;
+}
+
+.scm-language-switcher__trigger {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.scm-language-switcher__trigger:hover,
+.scm-language-switcher__trigger:focus-visible {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  outline: none;
+}
+.scm-language-switcher__arrow {
+  color: #111827;
+}
+span.scm-language-label-text {
+  color: var(--navy, #163b7a);
+}
+.scm-language-switcher__current {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scm-language-switcher__trigger .scm-language-label-text {
+  display: none;
+}
+
+.scm-language-switcher__arrow {
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.scm-language-switcher.is-open .scm-language-switcher__arrow {
+  transform: rotate(180deg);
+}
+
+.scm-language-switcher__dropdown {
+  position: fixed;
+  width: max-content;
+  min-width: var(--scm-trigger-width, 42px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.08),
+    0 4px 10px rgba(0, 0, 0, 0.04);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s ease;
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.scm-language-switcher__dropdown.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.scm-language-switcher__item {
+  width: 100%;
+  white-space: nowrap;
+  border: 0;
+  background: none;
+  padding: 12px 14px;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scm-language-switcher__item:hover,
+.scm-language-switcher__item:focus-visible,
+.scm-language-switcher__item.is-current {
+  background: #f5f7fa;
+  outline: none;
+}
+
+.scm-language-switcher__item.is-current {
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .scm-language-switcher__dropdown {
+    width: min(320px, calc(100vw - 20px));
+  }
+
+  .scm-language-switcher__item {
+    font-size: 15px;
+    padding: 14px;
+  }
+}
+
+/* Force dropdown UI for every frontend switcher layout, including after-content/shortcode. */
+.scm-language-switcher.scm-language-switcher--dropdown,
+.scm-language-switcher[data-scm-language-switcher='dropdown'] {
+  position: relative !important;
+  display: inline-block !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+}
+
+.scm-language-switcher[data-scm-language-switcher='dropdown']
+  .scm-language-switcher__trigger {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.scm-language-switcher[data-scm-language-switcher='dropdown']
+  .scm-language-switcher__dropdown {
+  display: block !important;
+}
+
+/* CSS fallback: still opens while focused even if JS is delayed by cache/optimizer. */
+.scm-language-switcher[data-scm-language-switcher='dropdown']:focus-within
+  .scm-language-switcher__dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.scm-language-switcher[data-scm-language-switcher='dropdown']
+  .scm-language-switcher__dropdown
+  .scm-language-label-text {
+  display: inline !important;
+}
+
+.scm-language-switcher[data-scm-language-switcher='dropdown']
+  .scm-language-switcher__trigger
+  .scm-language-label-text {
+  display: none !important;
+}

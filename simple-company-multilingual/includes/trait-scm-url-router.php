@@ -273,16 +273,32 @@ trait SCM_URL_Router {
 
 			$group = $this->get_translation_group( $front_page_id );
 
-			if ( empty( $group[ $language ] ) ) {
+			$translated_id = isset( $group[ $language ] ) ? absint( $group[ $language ] ) : 0;
+
+			/*
+			 * Repair legacy/inconsistent homepage groups. Some sites have the
+			 * translated homepage linked by _scm_translation_group but missing, stale,
+			 * or mismatched _scm_language meta. In that state /vi/ is parsed correctly
+			 * but no translated front page is found, so WordPress falls through to
+			 * "Nothing Found". Reuse the group-repair path before giving up.
+			 */
+			if ( $translated_id <= 0 ) {
+				$front_slug    = $this->get_translation_url_slug( $front_page_id );
+				$translated_id = $this->repair_missing_language_in_group( $front_page_id, $language, $front_slug );
+			}
+
+			if ( $translated_id <= 0 ) {
 				return 0;
 			}
 
-			$translated_id = absint( $group[ $language ] );
-			$post          = get_post( $translated_id );
+			$post = get_post( $translated_id );
 
 			if ( ! $post instanceof WP_Post || 'page' !== $post->post_type || 'trash' === $post->post_status ) {
 				return 0;
 			}
+
+			update_post_meta( $translated_id, self::META_LANGUAGE, $language );
+			update_post_meta( $translated_id, self::META_GROUP, $this->get_group_id( $front_page_id ) );
 
 			return $translated_id;
 		}
