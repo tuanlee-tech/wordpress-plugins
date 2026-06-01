@@ -98,11 +98,70 @@ jQuery(function ($) {
     frame.open();
   });
 
-  function scmInitCollapsedTranslationRows() {
-    $('tr.scm-translation-row--child').addClass('scm-is-collapsed');
+  function scmGetCurrentListStatus() {
+    var params = new URLSearchParams(window.location.search || '');
+    return params.get('post_status') || 'all';
+  }
+
+  function scmCanCollapseTranslationRows() {
+    var status = scmGetCurrentListStatus();
+
+    return status === 'all' || status === 'publish';
+  }
+
+  function scmReorderTranslationRowsByGroup() {
+    var tableBody = $('#the-list');
+
+    if (!tableBody.length) {
+      return;
+    }
+
+    tableBody.children('tr.scm-translation-row--root').each(function () {
+      var root = $(this);
+      var button = root.find('.scm-toggle-children').first();
+      var groupId = button.data('group');
+
+      if (!groupId) {
+        var groupClass = (root.attr('class') || '').match(/scm-translation-group-(\d+)/);
+        groupId = groupClass ? groupClass[1] : '';
+      }
+
+      if (!groupId) {
+        return;
+      }
+
+      var children = tableBody.children(
+        'tr.scm-translation-row--child.scm-translation-group-' + groupId,
+      );
+
+      if (children.length) {
+        children.detach();
+        root.after(children);
+      }
+    });
+  }
+
+  function scmInitTranslationRows() {
+    var canCollapse = scmCanCollapseTranslationRows();
+
+    $('body').toggleClass('scm-translation-list-collapse-enabled', canCollapse);
+
+    scmReorderTranslationRowsByGroup();
+
+    if (canCollapse) {
+      $('tr.scm-translation-row--child').addClass('scm-is-collapsed');
+      $('.scm-toggle-children').attr('aria-expanded', 'false').text('Show translations');
+    } else {
+      $('tr.scm-translation-row--child').removeClass('scm-is-collapsed');
+      $('.scm-toggle-children').attr('aria-expanded', 'true').text('Hide translations');
+    }
   }
 
   $(document).on('click', '.scm-toggle-children', function () {
+    if (!scmCanCollapseTranslationRows()) {
+      return;
+    }
+
     var button = $(this);
     var groupId = button.data('group');
     var expanded = button.attr('aria-expanded') === 'true';
@@ -119,5 +178,5 @@ jQuery(function ($) {
     button.text(expanded ? 'Show translations' : 'Hide translations');
   });
 
-  scmInitCollapsedTranslationRows();
+  scmInitTranslationRows();
 });

@@ -212,7 +212,11 @@
 }
 
 /* Admin list translation row highlighting */
-tr.scm-translation-row--child.scm-is-collapsed {
+body.scm-translation-list-collapse-enabled tr.scm-translation-row--child.scm-is-collapsed {
+  display: none !important;
+}
+
+body:not(.scm-translation-list-collapse-enabled) .scm-toggle-children {
   display: none !important;
 }
 

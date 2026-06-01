@@ -83,8 +83,8 @@
 }
 
 .scm-language-switcher__trigger {
-  min-height: 42px;
-  padding: 0 12px;
+  min-height: 32px;
+  padding: 0 4px;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fff;
