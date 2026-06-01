@@ -10,13 +10,74 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 trait SCM_Post_Translations {
+	/**
+	 * Get post types managed by this multilingual plugin.
+	 *
+	 * Defaults stay intentionally conservative to avoid changing unrelated CPTs.
+	 * The Event CPT is enabled automatically when it exists. Developers can opt in
+	 * more post types with: add_filter( 'scm_supported_post_types', ... ).
+	 *
+	 * @return string[]
+	 */
+	private function get_supported_post_types() {
+		$types = self::SUPPORTED_TYPES;
+
+		if ( post_type_exists( 'event' ) ) {
+			$types[] = 'event';
+		}
+
+		/**
+		 * Filter translatable post types.
+		 *
+		 * @param string[] $types Post type names.
+		 */
+		$types = apply_filters( 'scm_supported_post_types', $types );
+
+		if ( ! is_array( $types ) ) {
+			$types = self::SUPPORTED_TYPES;
+		}
+
+		$types = array_map( 'sanitize_key', $types );
+		$types = array_filter( array_unique( $types ) );
+
+		return array_values( $types );
+	}
+
+	/**
+	 * Check whether a post type is managed by this multilingual plugin.
+	 *
+	 * @param string $post_type Post type.
+	 * @return bool
+	 */
+	private function is_supported_post_type( $post_type ) {
+		return in_array( sanitize_key( $post_type ), $this->get_supported_post_types(), true );
+	}
+
+	/**
+	 * Register admin columns for custom post types added after plugin bootstrap.
+	 *
+	 * Built-in post/page hooks are still registered in the constructor for backward
+	 * compatibility. This method adds the same UI to custom post types such as Event.
+	 *
+	 * @return void
+	 */
+	public function register_custom_post_type_admin_hooks() {
+		foreach ( $this->get_supported_post_types() as $post_type ) {
+			if ( in_array( $post_type, self::SUPPORTED_TYPES, true ) ) {
+				continue;
+			}
+
+			add_filter( 'manage_' . $post_type . '_posts_columns', array( $this, 'add_language_column' ) );
+			add_action( 'manage_' . $post_type . '_posts_custom_column', array( $this, 'render_language_column' ), 10, 2 );
+		}
+	}
 /**
 		 * Register meta box.
 		 *
 		 * @return void
 		 */
 		public function register_meta_box() {
-			foreach ( self::SUPPORTED_TYPES as $post_type ) {
+			foreach ( $this->get_supported_post_types() as $post_type ) {
 				add_meta_box(
 					'scm_translation_box',
 					__( 'Company Translations', 'simple-company-multilingual' ),
@@ -44,14 +105,14 @@ trait SCM_Post_Translations {
 
 			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
-			if ( ! $screen || ! in_array( $screen->id, array( 'edit-page', 'edit-post' ), true ) ) {
+			if ( ! $screen || empty( $screen->post_type ) || ! $this->is_supported_post_type( $screen->post_type ) ) {
 				return $classes;
 			}
 
 			$post_id = absint( $post_id );
 			$post    = get_post( $post_id );
 
-			if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, self::SUPPORTED_TYPES, true ) ) {
+			if ( ! $post instanceof WP_Post || ! $this->is_supported_post_type( $post->post_type ) ) {
 				return $classes;
 			}
 
@@ -136,7 +197,7 @@ trait SCM_Post_Translations {
 		 * @return void
 		 */
 		public function save_post_meta( $post_id, $post ) {
-			if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, self::SUPPORTED_TYPES, true ) ) {
+			if ( ! $post instanceof WP_Post || ! $this->is_supported_post_type( $post->post_type ) ) {
 				return;
 			}
 
@@ -276,7 +337,7 @@ trait SCM_Post_Translations {
 		 * @return array
 		 */
 		public function add_row_actions( $actions, $post ) {
-			if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, self::SUPPORTED_TYPES, true ) || ! current_user_can( 'edit_post', $post->ID ) ) {
+			if ( ! $post instanceof WP_Post || ! $this->is_supported_post_type( $post->post_type ) || ! current_user_can( 'edit_post', $post->ID ) ) {
 				return $actions;
 			}
 
@@ -371,7 +432,7 @@ trait SCM_Post_Translations {
 				return new WP_Error( 'scm_missing_source', __( 'Source content not found.', 'simple-company-multilingual' ) );
 			}
 
-			if ( ! in_array( $source->post_type, self::SUPPORTED_TYPES, true ) ) {
+			if ( ! $this->is_supported_post_type( $source->post_type ) ) {
 				return new WP_Error( 'scm_invalid_type', __( 'Unsupported post type.', 'simple-company-multilingual' ) );
 			}
 
@@ -519,8 +580,23 @@ trait SCM_Post_Translations {
 		 */
 		private function copy_taxonomies( $source_id, $target_id ) {
 			$taxonomies = get_object_taxonomies( get_post_type( $source_id ) );
+			$excluded_taxonomies = apply_filters(
+				'scm_excluded_translation_taxonomies',
+				array( 'event_language' ),
+				absint( $source_id ),
+				absint( $target_id )
+			);
+
+			if ( ! is_array( $excluded_taxonomies ) ) {
+				$excluded_taxonomies = array();
+			}
+
+			$excluded_taxonomies = array_map( 'sanitize_key', $excluded_taxonomies );
 
 			foreach ( $taxonomies as $taxonomy ) {
+				if ( in_array( $taxonomy, $excluded_taxonomies, true ) ) {
+					continue;
+				}
 				$terms = wp_get_object_terms( $source_id, $taxonomy, array( 'fields' => 'ids' ) );
 
 				if ( is_wp_error( $terms ) ) {
@@ -687,7 +763,7 @@ trait SCM_Post_Translations {
 
 			$query = new WP_Query(
 				array(
-					'post_type'                 => self::SUPPORTED_TYPES,
+					'post_type'                 => $this->get_supported_post_types(),
 					'post_status'               => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 					'posts_per_page'            => -1,
 					'fields'                    => 'ids',
@@ -741,7 +817,7 @@ trait SCM_Post_Translations {
 
 			$query = new WP_Query(
 				array(
-					'post_type'                 => self::SUPPORTED_TYPES,
+					'post_type'                 => $this->get_supported_post_types(),
 					'post_status'               => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 					'posts_per_page'            => -1,
 					'fields'                    => 'ids',
@@ -799,7 +875,7 @@ trait SCM_Post_Translations {
 
 			$query = new WP_Query(
 				array(
-					'post_type'              => self::SUPPORTED_TYPES,
+					'post_type'              => $this->get_supported_post_types(),
 					'post_status'            => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 					'posts_per_page'         => -1,
 					'fields'                 => 'ids',
@@ -827,7 +903,7 @@ trait SCM_Post_Translations {
 			 */
 			$root_post = get_post( $group_id );
 
-			if ( $root_post instanceof WP_Post && in_array( $root_post->post_type, self::SUPPORTED_TYPES, true ) ) {
+			if ( $root_post instanceof WP_Post && $this->is_supported_post_type( $root_post->post_type ) ) {
 				$root_language = $this->get_raw_post_language( $group_id );
 
 				if ( '' !== $root_language ) {

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Company Multilingual
  * Description: Lightweight multilingual manager for company websites. Supports configurable languages, draft translation duplication, sibling linking, quick actions, and frontend duplicate filtering.
- * Version:     2.1.6
+ * Version:     2.1.7
  * Author:      Your Company
  * Text Domain: simple-company-multilingual
  * Domain Path: /languages
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SCM_PLUGIN_VERSION', '2.1.6' );
+define( 'SCM_PLUGIN_VERSION', '2.1.7' );
 define( 'SCM_PLUGIN_FILE', __FILE__ );
 define( 'SCM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SCM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

@@ -536,7 +536,7 @@ public function enqueue_admin_assets( $hook_suffix ) {
 	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
 	if ( $is_posts_list ) {
-		if ( ! $screen || ! in_array( $screen->post_type, self::SUPPORTED_TYPES, true ) ) {
+		if ( ! $screen || ! $this->is_supported_post_type( $screen->post_type ) ) {
 			return;
 		}
 	}

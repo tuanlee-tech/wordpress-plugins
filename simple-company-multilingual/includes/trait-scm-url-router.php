@@ -180,6 +180,50 @@ trait SCM_URL_Router {
 
 
 		/**
+		 * Infer a supported custom post type from a prefixed path.
+		 *
+		 * Example: /vi/event-item/my-event/ can be limited to the event post type
+		 * when event's rewrite slug is event-item. Posts/pages keep the previous
+		 * shared /prefix/slug/ behavior.
+		 *
+		 * @param string[] $parts Path parts after the language prefix.
+		 * @return string Post type name, or empty string when unknown.
+		 */
+		private function get_post_type_from_prefixed_path_parts( $parts ) {
+			if ( ! is_array( $parts ) || count( $parts ) < 2 ) {
+				return '';
+			}
+
+			$first = sanitize_title( $parts[0] );
+
+			if ( '' === $first ) {
+				return '';
+			}
+
+			foreach ( $this->get_supported_post_types() as $post_type ) {
+				if ( in_array( $post_type, array( 'post', 'page' ), true ) || ! post_type_exists( $post_type ) ) {
+					continue;
+				}
+
+				$object = get_post_type_object( $post_type );
+
+				if ( ! $object ) {
+					continue;
+				}
+
+				$rewrite = is_array( $object->rewrite ) ? $object->rewrite : array();
+				$slug    = isset( $rewrite['slug'] ) && '' !== $rewrite['slug'] ? sanitize_title( $rewrite['slug'] ) : sanitize_title( $post_type );
+
+				if ( $slug === $first ) {
+					return $post_type;
+				}
+			}
+
+			return '';
+		}
+
+
+		/**
 		 * Parse a prefixed translation URL directly from REQUEST_URI.
 		 *
 		 * @return array{locale:string,slug:string}
@@ -191,8 +235,9 @@ trait SCM_URL_Router {
 
 			if ( '' === $path ) {
 				return array(
-					'locale' => '',
-					'slug'   => '',
+					'locale'    => '',
+					'slug'      => '',
+					'post_type' => '',
 				);
 			}
 
@@ -200,25 +245,30 @@ trait SCM_URL_Router {
 
 			if ( count( $parts ) < 2 ) {
 				return array(
-					'locale' => '',
-					'slug'   => '',
+					'locale'    => '',
+					'slug'      => '',
+					'post_type' => '',
 				);
 			}
 
-			$prefix = sanitize_title( $parts[0] );
-			$slug   = sanitize_title( $parts[1] );
-			$locale = $this->get_language_by_prefix( $prefix );
+			$prefix     = sanitize_title( $parts[0] );
+			$path_parts = array_slice( $parts, 1 );
+			$slug       = sanitize_title( end( $path_parts ) );
+			$locale     = $this->get_language_by_prefix( $prefix );
+			$post_type  = $this->get_post_type_from_prefixed_path_parts( $path_parts );
 
 			if ( '' === $locale || '' === $slug ) {
 				return array(
-					'locale' => '',
-					'slug'   => '',
+					'locale'    => '',
+					'slug'      => '',
+					'post_type' => '',
 				);
 			}
 
 			return array(
-				'locale' => $locale,
-				'slug'   => $slug,
+				'locale'    => $locale,
+				'slug'      => $slug,
+				'post_type' => $post_type,
 			);
 		}
 
@@ -330,7 +380,7 @@ trait SCM_URL_Router {
 				);
 
 				add_rewrite_rule(
-					'^' . preg_quote( $prefix, '#' ) . '/([^/]+)/?$',
+					'^' . preg_quote( $prefix, '#' ) . '/(.+?)/?$',
 					'index.php?scm_lang_prefix=' . $prefix . '&scm_translation_slug=$matches[1]',
 					'top'
 				);
@@ -360,6 +410,7 @@ trait SCM_URL_Router {
 		public function resolve_prefixed_translation_request( $vars ) {
 			$locale = '';
 			$slug   = '';
+			$requested_post_type = '';
 
 			/*
 			 * Language-root homepage URLs, for example /vi/ or /de/.
@@ -395,6 +446,7 @@ trait SCM_URL_Router {
 			if ( ! empty( $path_request['locale'] ) && ! empty( $path_request['slug'] ) ) {
 				$locale = $path_request['locale'];
 				$slug   = $path_request['slug'];
+				$requested_post_type = ! empty( $path_request['post_type'] ) ? sanitize_key( $path_request['post_type'] ) : '';
 			}
 
 			/*
@@ -433,7 +485,7 @@ trait SCM_URL_Router {
 			}
 
 			$post_status = is_user_logged_in() ? array( 'publish', 'draft', 'pending', 'private' ) : array( 'publish' );
-			$target_id   = $this->find_translation_by_language_slug( $locale, $slug, $post_status );
+			$target_id   = $this->find_translation_by_language_slug( $locale, $slug, $post_status, $requested_post_type );
 
 			if ( $target_id <= 0 ) {
 				return $vars;
@@ -451,8 +503,15 @@ trait SCM_URL_Router {
 				);
 			}
 
+			if ( 'post' === $target->post_type ) {
+				return array(
+					'p' => $target_id,
+				);
+			}
+
 			return array(
-				'p' => $target_id,
+				'p'         => $target_id,
+				'post_type' => $target->post_type,
 			);
 		}
 
@@ -464,9 +523,11 @@ trait SCM_URL_Router {
 		 * @param string|array $post_status Allowed post statuses.
 		 * @return int
 		 */
-		private function find_translation_by_language_slug( $locale, $slug, $post_status ) {
+		private function find_translation_by_language_slug( $locale, $slug, $post_status, $post_type = '' ) {
 			$locale = sanitize_key( $locale );
 			$slug   = sanitize_title( $slug );
+			$post_type = sanitize_key( $post_type );
+			$query_post_types = ( '' !== $post_type && $this->is_supported_post_type( $post_type ) ) ? array( $post_type ) : $this->get_supported_post_types();
 
 			/*
 			 * Fast path: normal data where the target already has both language and
@@ -474,7 +535,7 @@ trait SCM_URL_Router {
 			 */
 			$query = new WP_Query(
 				array(
-					'post_type'                 => self::SUPPORTED_TYPES,
+					'post_type'                 => $query_post_types,
 					'post_status'               => $post_status,
 					'posts_per_page'            => 1,
 					'fields'                    => 'ids',
@@ -513,7 +574,7 @@ trait SCM_URL_Router {
 			 */
 			$slug_query = new WP_Query(
 				array(
-					'post_type'                 => self::SUPPORTED_TYPES,
+					'post_type'                 => $query_post_types,
 					'post_status'               => $post_status,
 					'posts_per_page'            => -1,
 					'fields'                    => 'ids',
@@ -570,7 +631,7 @@ trait SCM_URL_Router {
 			 */
 			$fallback_query = new WP_Query(
 				array(
-					'post_type'                 => self::SUPPORTED_TYPES,
+					'post_type'                 => $query_post_types,
 					'post_status'               => $post_status,
 					'name'                      => $slug,
 					'posts_per_page'            => 1,
@@ -616,7 +677,7 @@ trait SCM_URL_Router {
 
 			$query = new WP_Query(
 				array(
-					'post_type'                 => self::SUPPORTED_TYPES,
+					'post_type'                 => $this->get_supported_post_types(),
 					'post_status'               => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 					'posts_per_page'            => -1,
 					'fields'                    => 'ids',
@@ -702,6 +763,21 @@ trait SCM_URL_Router {
 		}
 
 /**
+		 * Apply language prefix to translated custom post type permalinks.
+		 *
+		 * @param string  $permalink Permalink.
+		 * @param WP_Post $post      Post.
+		 * @return string
+		 */
+		public function filter_custom_post_type_translation_permalink( $permalink, $post ) {
+			if ( ! $post instanceof WP_Post || in_array( $post->post_type, array( 'post', 'page' ), true ) || ! $this->is_supported_post_type( $post->post_type ) ) {
+				return $permalink;
+			}
+
+			return $this->get_public_translation_permalink( $post->ID, $permalink );
+		}
+
+/**
 		 * Get public multilingual permalink for a post/page.
 		 *
 		 * This intentionally uses _scm_translation_url_slug instead of post_name.
@@ -716,7 +792,7 @@ trait SCM_URL_Router {
 			$post_id = absint( $post_id );
 			$post    = get_post( $post_id );
 
-			if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, self::SUPPORTED_TYPES, true ) ) {
+			if ( ! $post instanceof WP_Post || ! $this->is_supported_post_type( $post->post_type ) ) {
 				return $fallback_url;
 			}
 
@@ -747,6 +823,28 @@ trait SCM_URL_Router {
 
 			if ( '' === $slug ) {
 				return $fallback_url;
+			}
+
+			if ( ! in_array( $post->post_type, array( 'post', 'page' ), true ) ) {
+				if ( $locale === $this->get_default_language() ) {
+					return $fallback_url;
+				}
+
+				$active = $this->get_active_languages();
+				$prefix = isset( $active[ $locale ]['prefix'] ) ? sanitize_title( $active[ $locale ]['prefix'] ) : '';
+
+				if ( '' === $prefix ) {
+					return $fallback_url;
+				}
+
+				$path = wp_parse_url( $fallback_url, PHP_URL_PATH );
+				$path = is_string( $path ) ? trim( $path, '/' ) : '';
+
+				if ( '' === $path ) {
+					return $fallback_url;
+				}
+
+				return home_url( user_trailingslashit( $prefix . '/' . $path ) );
 			}
 
 			if ( $locale === $this->get_default_language() ) {

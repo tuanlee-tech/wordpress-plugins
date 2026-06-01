@@ -89,7 +89,7 @@ trait SCM_Locale {
 			if ( $queried_id > 0 ) {
 				$post = get_post( $queried_id );
 
-				if ( $post instanceof WP_Post && in_array( $post->post_type, self::SUPPORTED_TYPES, true ) ) {
+				if ( $post instanceof WP_Post && $this->is_supported_post_type( $post->post_type ) ) {
 					return $this->get_post_language( $queried_id );
 				}
 			}

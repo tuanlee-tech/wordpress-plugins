@@ -20,7 +20,7 @@ trait SCM_SEO {
 		 * @return void
 		 */
 		public function maybe_replace_core_canonical() {
-			if ( is_admin() || ! is_singular( self::SUPPORTED_TYPES ) ) {
+			if ( is_admin() || ! is_singular( $this->get_supported_post_types() ) ) {
 				return;
 			}
 

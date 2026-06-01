@@ -100,6 +100,7 @@ if ( ! class_exists( 'Simple_Company_Multilingual' ) ) {
 			add_action( 'admin_init', array( $this, 'maybe_flush_rewrite_rules' ), 20 );
 			add_action( 'admin_notices', array( $this, 'render_language_pack_notices' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+			add_action( 'init', array( $this, 'register_custom_post_type_admin_hooks' ), 30 );
 
 			add_action( 'add_meta_boxes', array( $this, 'register_meta_box' ) );
 			add_action( 'save_post', array( $this, 'save_post_meta' ), 10, 2 );
@@ -134,6 +135,7 @@ if ( ! class_exists( 'Simple_Company_Multilingual' ) ) {
 			add_filter( 'request', array( $this, 'resolve_prefixed_translation_request' ) );
 			add_filter( 'post_link', array( $this, 'filter_post_translation_permalink' ), 10, 2 );
 			add_filter( 'page_link', array( $this, 'filter_page_translation_permalink' ), 10, 2 );
+			add_filter( 'post_type_link', array( $this, 'filter_custom_post_type_translation_permalink' ), 10, 2 );
 
 			add_filter(
 				'plugin_action_links_' . plugin_basename( SCM_PLUGIN_FILE ),
