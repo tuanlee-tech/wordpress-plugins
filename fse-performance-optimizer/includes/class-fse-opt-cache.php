@@ -158,7 +158,10 @@ class FSE_Opt_Cache {
 				$css = preg_replace( '#/\*.*?\*/#s', '', $css );
 				// Collapse whitespace.
 				$css = preg_replace( '/\s+/', ' ', $css );
-				$css = preg_replace( '/\s*([{};:,>~])\s*/', '$1', $css );
+				// Strip spaces around structural tokens, NEVER before `:` (preserves `:root :where(...)` descendant selectors!).
+				$css = preg_replace( '/\s*([{};,>~])\s*/', '$1', $css );
+				// Strip spaces around `:` only inside property declarations (immediately after `{` or `;`).
+				$css = preg_replace( '/([;{])\s*([a-zA-Z_-]+)\s*:\s*/', '$1$2:', $css );
 				$css = str_replace( ';}', '}', $css );
 				return $m[1] . trim( $css ) . $m[3];
 			},
