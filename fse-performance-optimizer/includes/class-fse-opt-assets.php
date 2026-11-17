@@ -292,19 +292,83 @@ class FSE_Opt_Assets {
 	private function get_delayed_script_loader_js() {
 		return '<script id="fse-opt-delay-loader">
 (function(){
-	var loaded = false, pendingCartClick = null;
+	var loaded = false, ready = false, pendingCartClick = null;
 	var events = ["mousemove","touchstart","scroll","keydown","wheel"];
+	var origWinAdd = window.addEventListener.bind(window);
+	var origDocAdd = document.addEventListener.bind(document);
+	var postDcl = [], postLoad = [], patched = false;
+
+	function installLifecyclePatch(){
+		if(patched) return;
+		patched = true;
+		window.addEventListener = function(type, fn, opts){
+			if(type === "load" && document.readyState === "complete" && typeof fn === "function"){
+				postLoad.push(fn);
+				return;
+			}
+			return origWinAdd(type, fn, opts);
+		};
+		document.addEventListener = function(type, fn, opts){
+			if(type === "DOMContentLoaded" && document.readyState !== "loading" && typeof fn === "function"){
+				postDcl.push(fn);
+				return;
+			}
+			return origDocAdd(type, fn, opts);
+		};
+	}
+
+	function restoreAndFlushLifecycle(){
+		if(patched){
+			window.addEventListener = origWinAdd;
+			document.addEventListener = origDocAdd;
+			patched = false;
+		}
+		var dclList = postDcl.splice(0);
+		for(var i = 0; i < dclList.length; i++){
+			try { dclList[i].call(document, new Event("DOMContentLoaded")); } catch(err){}
+		}
+		var loadList = postLoad.splice(0);
+		for(var j = 0; j < loadList.length; j++){
+			try { loadList[j].call(window, new Event("load")); } catch(err){}
+		}
+		ready = true;
+		if(pendingCartClick){
+			var btn = pendingCartClick;
+			pendingCartClick = null;
+			setTimeout(function(){ btn.click(); }, 50);
+		}
+	}
+
 	function triggerLoad(e){
-		if(e && e.target && e.target.closest && e.target.closest(".wc-block-mini-cart__button")){
-			pendingCartClick = e.target.closest(".wc-block-mini-cart__button");
+		if(e && e.target && e.target.closest){
+			var btn = e.target.closest(".wc-block-mini-cart__button");
+			if(btn){ pendingCartClick = btn; }
 		}
 		if(loaded) return;
 		loaded = true;
 		events.forEach(function(ev){ window.removeEventListener(ev, triggerLoad, {passive:true}); });
 		var queue = Array.prototype.slice.call(document.querySelectorAll("script[type=\"fse-delay\"]"));
+		if(queue.length === 0){
+			ready = true;
+			return;
+		}
+		var head = document.head || document.getElementsByTagName("head")[0];
+		if(head){
+			queue.forEach(function(el){
+				var u = el.getAttribute("data-fse-src");
+				if(u){
+					var link = document.createElement("link");
+					link.rel = "preload";
+					link.as = "script";
+					link.href = u;
+					head.appendChild(link);
+				}
+			});
+		}
+		installLifecyclePatch();
 		function next(idx){
 			if(idx >= queue.length){
-				if(pendingCartClick){ setTimeout(function(){ pendingCartClick.click(); }, 50); }
+				restoreAndFlushLifecycle();
 				return;
 			}
 			var old = queue[idx];
@@ -328,10 +392,22 @@ class FSE_Opt_Assets {
 	}
 	events.forEach(function(ev){ window.addEventListener(ev, triggerLoad, {passive:true}); });
 	document.addEventListener("click", function(e){
-		if(!loaded && e.target && e.target.closest && e.target.closest(".wc-block-mini-cart__button")){
-			triggerLoad(e);
+		var btn = e.target && e.target.closest && e.target.closest(".wc-block-mini-cart__button");
+		if(!ready && btn){
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			pendingCartClick = btn;
+			if(!loaded){ triggerLoad(e); }
 		}
 	}, true);
+
+	if(/(?:^|;\s*)woocommerce_items_in_cart=[1-9]\d*/.test(document.cookie) || /[?&]add-to-cart=/.test(window.location.search)){
+		if(document.readyState === "loading"){
+			origDocAdd("DOMContentLoaded", function(){ setTimeout(function(){ triggerLoad(); }, 0); });
+		} else {
+			setTimeout(function(){ triggerLoad(); }, 0);
+		}
+	}
 })();
 </script>';
 	}
